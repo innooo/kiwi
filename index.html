@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>File upload</title>
+    <style>
+        div,ul,li,label,input {
+            padding: 0;
+            margin: 0;
+        }
+        ul,li {
+            list-style: none;
+        }
+        .cover {
+            display: none;
+            background: rgba(0,0,0,.2);
+            position: fixed;
+            z-index: 10;
+            top: 0;
+            bottom: 0;
+            right: 0;
+            left: 0;
+        }
+        .file-bar {
+            width: 120px;
+            height: 30px;
+            line-height: 30px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            text-align: center;
+            cursor: pointer;
+        }
+        .files {
+            display:none;
+        }
+        .file-list {
+            min-height: 200px;
+            padding: 10px 0;
+        }
+        .file-list ul {
+            display: flex;
+            align-items: center;
+            width: 500px;
+            background:#ececec;
+            padding: 5px;
+        }
+        .file-list .file-list-item {
+            width: 100px;
+            height: 60px;
+            margin: 5px;
+            background:#fff;
+            cursor: pointer;
+        }
+        .file-preview-wrap {
+            display: none;
+            position: fixed;
+            z-index: 11;
+            width: 700px;
+            top: 0;
+            bottom: 0;
+            right: 0;
+            left: 0;
+            margin: auto;
+        }
+        .file-preview-box {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        .file-preview {
+            width: 600px;
+            height: 400px;
+            background: #fff;
+        }
+        .file-preview-arrow {
+            font-size: 40px;
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="cover" id="JS_cover"></div>
+    <div class="fileUpload-wrap">
+        <label>
+            <input type="file" class="files" id="JS_fileUpload" value="请选择文件" multiple />
+            <div class="file-bar">
+                请选择文件
+            </div>
+        </label>
+        <div class="file-list">
+            <ul>
+                <li class="file-list-item"></li>
+                <li class="file-list-item"></li>
+                <li class="file-list-item"></li>
+                <li class="file-list-item"></li>
+            </ul>
+        </div>
+    </div>
+    <div class="file-preview-wrap">
+        <div class="file-preview-box">
+            <div class="file-preview-arrow"><</div>
+            <div class="file-preview"></div>
+            <div class="file-preview-arrow">></div>
+        </div>
+    </div>
+</body>
+<script>
+    window.onload = function() {
+        // 文件上传按钮
+        var uploadBtn = document.getElementById('JS_fileUpload');
+        var imgForm = uploadBtn; // 文件表单
+
+        // 创建formData实例
+        var newFormData = new FormData();
+        var myFileReader = new FileReader();
+
+        uploadBtn.onchange = function() {
+            var imgFormData = imgForm.files[0];
+            // 将选择的文件信息加入FormData对象中
+            newFormData.append('image', imgFormData);
+
+            // FileReader 对象： 允许web应用程序异步读取存储在用户计算机中的文件
+            // FileReader 对象的readAsDataURL方法可以将图片的二进制文件转化为base64格式的dataUrl
+            myFileReader.readAsDataURL(imgFormData); // 因为读取的过程是异步的，所以想要获取对应的dataURL就需要使用onload事件
+            myFileReader.onload = (e) => {
+                console.info(e.target.result);
+            }
+        };
+    };
+</script>
+</html>
