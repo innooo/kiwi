@@ -41,17 +41,25 @@
         }
         .file-list ul {
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
             width: 500px;
             background:#ececec;
             padding: 5px;
         }
         .file-list .file-list-item {
+            position: relative;
+            z-index: 2;
             width: 100px;
             height: 60px;
             margin: 5px;
             background:#fff;
             cursor: pointer;
+        }
+        .file-list .file-list-item img {
+            display: block;
+            width: 100%;
+            height: 100%;
         }
         .file-preview-wrap {
             display: none;
@@ -80,10 +88,17 @@
             font-weight: bold;
             cursor: pointer;
         }
+        .select {
+            background: url('assets/arror.png');
+        }
     </style>
+    <script src="tools/imgAlign.js"></script>
 </head>
 <body>
+    <!-- cover -->
     <div class="cover" id="JS_cover"></div>
+    
+    <!-- fileupload -->
     <div class="fileUpload-wrap">
         <label>
             <input type="file" class="files" id="JS_fileUpload" value="请选择文件" multiple />
@@ -92,14 +107,13 @@
             </div>
         </label>
         <div class="file-list">
-            <ul>
-                <li class="file-list-item"></li>
-                <li class="file-list-item"></li>
-                <li class="file-list-item"></li>
-                <li class="file-list-item"></li>
+            <ul id="JS_fileList">
+                
             </ul>
         </div>
     </div>
+
+    <!-- preview -->
     <div class="file-preview-wrap">
         <div class="file-preview-box">
             <div class="file-preview-arrow"><</div>
@@ -112,8 +126,13 @@
     window.onload = function() {
         // 文件上传按钮
         var uploadBtn = document.getElementById('JS_fileUpload');
+        var OfileList = document.getElementById('JS_fileList');
         var imgForm = uploadBtn; // 文件表单
 
+        // 对号图片
+        var tick = new Image();
+        tick.src = 'assets/arror.png';
+        
         // 创建formData实例
         var newFormData = new FormData();
         var myFileReader = new FileReader();
@@ -127,9 +146,57 @@
             // FileReader 对象的readAsDataURL方法可以将图片的二进制文件转化为base64格式的dataUrl
             myFileReader.readAsDataURL(imgFormData); // 因为读取的过程是异步的，所以想要获取对应的dataURL就需要使用onload事件
             myFileReader.onload = (e) => {
-                console.info(e.target.result);
+                renderFileList(OfileList, e);
+            }
+        };
+
+        OfileList.onchange = function(e) {
+            var target = e.target;
+            var nextNode = target.nextSibling;
+            if(nextNode.tagName == 'CANVAS') {
+                var ctx = nextNode.getContext('2d');
+                if(target.checked) { // 选中图片
+                    ctx.drawImage(tick, nextNode.width - 25, 5, 20, 20);
+                }else {
+                    ctx.clearRect(0, 0, nextNode.width, nextNode.height);
+                    // 重新绘制图形
+                    drawPreviewImage(nextNode, target.value);
+                }
             }
         };
     };
+
+    // 生成图片列表
+    function renderFileList(OfileList, e) {
+        var li = document.createElement('li');
+        li.className = 'file-list-item';
+        var myCanvas = document.createElement('canvas');
+        var label = document.createElement('label');
+        label.style.display = 'block';
+        var input = document.createElement('input');
+        input.type = 'checkbox';
+        input.value = e.target.result;
+        input.style.display = 'none';
+        label.appendChild(input);
+        label.appendChild(myCanvas);
+        li.appendChild(label);
+        OfileList.appendChild(li);
+        var myContext = myCanvas.getContext('2d');
+        
+        // 设置canvas画布的宽高
+        myCanvas.width = li.offsetWidth;
+        myCanvas.height = li.offsetHeight;
+        drawPreviewImage(myCanvas, e.target.result);
+    }
+
+    function drawPreviewImage(canvas, dataURL) {
+        // 加载图片,并绘制
+        preImage(dataURL, function() {
+            var me = this;
+            alignImg(me, canvas, function(startX, startY, width, height) {
+                canvas.getContext('2d').drawImage(me, startX, startY, width, height);
+            });
+        });
+    }
 </script>
 </html>
