@@ -13,6 +13,9 @@
         ul,li {
             list-style: none;
         }
+        button {
+            user-select: none;
+        }
         .cover {
             display: none;
             background: rgba(0,0,0,.2);
@@ -112,7 +115,6 @@
         }
         .file-operate {
             flex: 1;
-            background: #ececec;
             min-height: 300px;
             padding: 10px;
             margin-left: 20px;
@@ -183,8 +185,8 @@
                 <input type="hidden" id="JS_imgPreviewCache">
                 <div>
                     <div class="file-operate-menu">
-                        <button>取消</button>
-                        <button>确定</button>
+                        <button id="JS_operateCancel">取消</button>
+                        <button id="JS_operateConfirm">确定</button>
                     </div>
                 </div>
                 
@@ -212,6 +214,12 @@
 
         // 选择按钮
         var operateBtn = document.getElementById('JS_oprateBtn');
+        var operateCancel = document.getElementById('JS_operateCancel');
+        var operateConfirm = document.getElementById('JS_operateConfirm');
+
+        // 选择的图片数据
+        var selectImgData;
+        
         
         operateBtn.onchange = function(e) {
             var node = e.target;
@@ -233,6 +241,18 @@
             }
             
         }
+
+        // 编辑区取消按钮
+        operateCancel.onclick = function() {
+            // 重新绘制preview图片
+            drawPreviewImage(operateCanvas, document.getElementById('JS_imgPreviewCache').value);
+        };
+
+        // 编辑区确定按钮
+        operateConfirm.onclick = function() {
+            operateCtx.clearRect(0, 0, operateCanvas.width, operateCanvas.height);
+            operateCtx.putImageData(selectImgData, 0, 0);
+        };
 
         // 对号图片
         var tick = new Image();
@@ -297,7 +317,7 @@
                 ctx.fillRect(0, m_y, m_x, me.height);
 
                 // 选中区域的图片
-                // var selectImg = me.getImageData(m_x, m_y, end_x, end_y);
+                selectImgData = ctx.getImageData(m_x, m_y, end_x - m_x, end_y - m_y);
             }
             document.onmouseup = function() {
                 document.onmousemove = null; // 清除鼠标移动事件
