@@ -31,19 +31,38 @@
             border-radius: 3px;
             text-align: center;
             cursor: pointer;
+            user-select: none;
         }
         .files {
             display:none;
+        }
+        .file-content {
+            display: flex;
+            justify-content: flex-start;
         }
         .file-list {
             min-height: 200px;
             padding: 10px 0;
         }
+        .file-list-menu {
+            display: flex;
+            justify-content: flex-end;
+            padding: 5px;
+        }
+        .file-list-menu span {
+            color: #f0f;
+            cursor: pointer;
+            user-select: none;
+            /* -moz-user-select:none;
+            -webkit-user-select: none;   
+            -ms-user-select: none; */
+        }
         .file-list ul {
             display: flex;
             flex-wrap: wrap;
+            width: 440px;
+            min-height: 70px;
             align-items: center;
-            width: 500px;
             background:#ececec;
             padding: 5px;
         }
@@ -91,6 +110,41 @@
         .select {
             background: url('assets/arror.png');
         }
+        .file-operate {
+            flex: 1;
+            background: #ececec;
+            min-height: 300px;
+            padding: 10px;
+            margin-left: 20px;
+            border-left: 1px solid #ccc;
+        }
+        .file-operate-menu {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+        }
+        .file-operate-menu button{
+            outline: none;
+            border: 0;
+            font-size: 16px;
+            margin-left: 20px;
+            cursor: pointer;
+            padding: 3px 8px;
+        }
+        .file-list-menu_bottom {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 20px 0;
+        }
+        .file-list-menu_bottom button {
+            outline: none;
+            border: 0;
+            color: #ae34aa;
+            cursor: pointer;
+            padding: 3px 7px;
+            font-size: 14px;
+        }
     </style>
     <script src="tools/imgAlign.js"></script>
 </head>
@@ -106,10 +160,35 @@
                 请选择文件
             </div>
         </label>
-        <div class="file-list">
-            <ul id="JS_fileList">
+        <div class="file-content">
+            <div class="file-list">
+                <div class="file-list-menu">
+                    <label>
+                        <input type="checkbox" id="JS_oprateBtn" style="display: none;" />
+                        <span>选择</span>
+                    </label>
+                </div>
+                <ul id="JS_fileList">
+                    
+                </ul>
+                <div id="JS_operateBottom" style="display: none;">
+                    <div class="file-list-menu_bottom">
+                        <button id="JS_delete">删除</button>
+                        <button id="JS_upload">上传</button>
+                    </div> 
+                </div>
+            </div>
+            <div class="file-operate">
+                <canvas width="500" height="300" id="JS_operateCanvas"></canvas>
+                <input type="hidden" id="JS_imgPreviewCache">
+                <div>
+                    <div class="file-operate-menu">
+                        <button>取消</button>
+                        <button>确定</button>
+                    </div>
+                </div>
                 
-            </ul>
+            </div>
         </div>
     </div>
 
@@ -128,6 +207,32 @@
         var uploadBtn = document.getElementById('JS_fileUpload');
         var OfileList = document.getElementById('JS_fileList');
         var imgForm = uploadBtn; // 文件表单
+        var operateCanvas = document.getElementById('JS_operateCanvas'); // 右侧操作区域canvas
+        var operateCtx = operateCanvas.getContext('2d');
+
+        // 选择按钮
+        var operateBtn = document.getElementById('JS_oprateBtn');
+        
+        operateBtn.onchange = function(e) {
+            var node = e.target;
+            if(node.checked) {
+                document.getElementById('JS_operateBottom').style.display = 'block';
+                node.nextElementSibling.innerHTML = '取消';
+                clearCheckbox(); // 清空文件列表checkbox选中状态
+            } else {
+                document.getElementById('JS_operateBottom').style.display = 'none';
+                node.nextElementSibling.innerHTML = '选择';
+                // 文件列表重绘
+                [].forEach.call(document.getElementsByName('imgVal'), function(node, index) {
+                    node.checked =false;
+                    var canvas = node.nextElementSibling;
+                    var ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    drawPreviewImage(canvas, node.value);
+                });
+            }
+            
+        }
 
         // 对号图片
         var tick = new Image();
@@ -155,26 +260,66 @@
             var nextNode = target.nextSibling;
             if(nextNode.tagName == 'CANVAS') {
                 var ctx = nextNode.getContext('2d');
-                if(target.checked) { // 选中图片
-                    ctx.drawImage(tick, nextNode.width - 25, 5, 20, 20);
-                }else {
-                    ctx.clearRect(0, 0, nextNode.width, nextNode.height);
-                    // 重新绘制图形
-                    drawPreviewImage(nextNode, target.value);
+                if(operateBtn.checked) // 如果此时为图片选择模式
+                {
+                    if(target.checked) { // 选中图片
+                        ctx.drawImage(tick, nextNode.width - 25, 5, 20, 20);
+                    }else {
+                        ctx.clearRect(0, 0, nextNode.width, nextNode.height);
+                        // 重新绘制图形
+                        drawPreviewImage(nextNode, target.value);
+                    }
+                }else { // 此时为编辑模式
+                    operateCtx.clearRect(0, 0, operateCanvas.width, operateCanvas.height);
+                    drawPreviewImage(operateCanvas, target.value);
+                    document.getElementById('JS_imgPreviewCache').value = target.value; // 缓存图片信息
                 }
+            }
+        };
+
+        // 编辑区操作
+        operateCanvas.onmousedown = function(e) {
+            const me = this;
+            const ctx = this.getContext && this.getContext('2d');
+            // 鼠标起点
+            const m_x = e.offsetX;
+            const m_y = e.offsetY;
+            document.onmousemove = function(e) {
+                const end_x = e.offsetX;
+                const end_y = e.offsetY;
+                ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                ctx.clearRect(0, 0, me.width, me.height);
+                drawPreviewImage(me, document.getElementById('JS_imgPreviewCache').value);
+                // 绘制选择区域
+                ctx.fillRect(0, 0, end_x, m_y);
+                ctx.fillRect(end_x, 0, me.width, end_y);
+                ctx.fillRect(m_x, end_y, me.width, me.height);
+                ctx.fillRect(0, m_y, m_x, me.height);
+
+                // 选中区域的图片
+                // var selectImg = me.getImageData(m_x, m_y, end_x, end_y);
+            }
+            document.onmouseup = function() {
+                document.onmousemove = null; // 清除鼠标移动事件
+                document.onmouseup = null;
             }
         };
     };
 
+    
+
     // 生成图片列表
     function renderFileList(OfileList, e) {
         var li = document.createElement('li');
-        li.className = 'file-list-item';
         var myCanvas = document.createElement('canvas');
         var label = document.createElement('label');
-        label.style.display = 'block';
         var input = document.createElement('input');
+
+        li.className = 'file-list-item';
+        label.style.display = 'block';
+        
         input.type = 'checkbox';
+        input.name = 'imgVal';
         input.value = e.target.result;
         input.style.display = 'none';
         label.appendChild(input);
@@ -187,6 +332,14 @@
         myCanvas.width = li.offsetWidth;
         myCanvas.height = li.offsetHeight;
         drawPreviewImage(myCanvas, e.target.result);
+    }
+
+    // 清除checkbox选中状态
+    function clearCheckbox() {
+        var imgCheckboxList = document.getElementsByName('imgVal');
+        [].forEach.call(imgCheckboxList, function(node, index) {
+            node.checked =false;
+        });
     }
 
     function drawPreviewImage(canvas, dataURL) {
